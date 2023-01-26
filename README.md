@@ -13,6 +13,14 @@ Enormous number of video recordings are being created and shared on the Internet
 3. Build a Flask backend REST API to expose the summarization service to the client.
 4. Develop a chrome extension which will utilize the backend API to display summarized text to the user.
 
+## Project Stages
+
+1. Open a Youtube Video and Click on Summarize in Chrome Extension to create a HTTP request to the back-end.
+2. Request Transcript for a given youtube video id
+3. Return Transcript for a video id as a HTTP response
+4. Perform Transcript Summarization and return it as a HTTP response
+5. Display summarized transcript on the extension
+
 ## Applications
 
 Meetings and video-conferencing - A system that could turn voice to text and generate summaries from your team meetings.

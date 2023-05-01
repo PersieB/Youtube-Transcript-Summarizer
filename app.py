@@ -6,29 +6,11 @@
 """
 
 # Importing libraries
-from flask import Flask, make_response, request
+from flask import Flask, make_response, request, render_template
 from youtube_transcript_api import YouTubeTranscriptApi
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from pytube import extract
 import json
-
-
-# define a variable to hold the app
-app = Flask(__name__)
-
-# define the resource endpoints
-@app.route('/')
-def index_page():
-    return "Hello world"
-
-# return transcript list as string
-def transcript_to_text(transcript_list):
-    text = ""
-    for i in transcript_list:
-        text+=" "+i['text']
-    return text
-
-
 
 # GLOBAL VARIABLES
 # initialize the model architecture and weights
@@ -36,13 +18,28 @@ model = T5ForConditionalGeneration.from_pretrained("t5-large")
 # initialize the model tokenizer
 tokenizer = T5Tokenizer.from_pretrained("t5-large")
 
-# Function to summarize text
+# define a variable to hold the app
+app = Flask(__name__)
+
+# define the resource endpoints
+@app.route('/')
+def index_page():
+    return render_template('index.html')
+
+# Helper method: return transcript list as string
+def transcript_to_text(transcript_list):
+    text = ""
+    for i in transcript_list:
+        text+=" "+i['text']
+    return text
+
+# Helper method: Function to summarize text
 def summarize_transcript(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors = "pt", max_length = 512, truncation =True )
     outputs = model.generate(inputs, max_length=150, min_length =30,length_penalty = 2.0, num_beams=4, early_stopping=True)
     return tokenizer.decode(outputs[0]) # print summary
 
-# Function to extract video id from youtube url
+# Helper method: Function to extract video id from youtube url
 def extract_id_from_url(youtube_url):
     id = extract.video_id(youtube_url)
     return id
@@ -52,18 +49,22 @@ def extract_id_from_url(youtube_url):
 # accept youtube url as an input parameter and return transcript as output
 # Extracts the video id from the url and uses it to generate the transcript
 """
-@app.route('/api/summarize', methods=['GET'])
-def transcript_summary():
-    args = request.args
-    youtube_url = args.get("youtube_url")  
+def transcript_summary(youtube_url):
     try:
-        vid_id = extract_id_from_url(youtube_url=youtube_url)
+        vid_id = extract_id_from_url(youtube_url)
         transcript_list = YouTubeTranscriptApi.get_transcript(video_id=vid_id)
         summary = summarize_transcript(transcript_to_text(transcript_list=transcript_list))
-        return make_response(summary, 200)
+        return summary
     except Exception:
-        msg = "Sorry, the youtube url provided cannot be recognised"
-        return make_response(msg, 404)
+        msg = "Sorry, the youtube video cannot be transcribed or the url provided cannot be recognised"
+        return msg
+
+@app.route('/api/summarize', methods=['GET'])
+def summarizer_api():
+    if len(request.args) > 0 and 'youtube_url' in request.args:
+        url = request.args['youtube_url']
+        return render_template('summarize.html', message = transcript_summary(url))
+    return render_template('summarize.html', message = "Kindly specify api request as /api/summarize?youtube_url=<<url>>")
 
 
 # server the app when this file is run
